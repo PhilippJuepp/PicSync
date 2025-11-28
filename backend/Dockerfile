@@ -8,15 +8,15 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o pixsync ./cmd/server
+RUN go build -o picsync ./cmd/server
 
 FROM alpine:latest
 WORKDIR /app
 
-COPY --from=builder /app/pixsync .
+COPY --from=builder /app/picsync .
 
 RUN apk --no-cache add ca-certificates
 
 EXPOSE 8080
 
-CMD ["./pixsync"]
+CMD ["./picsync"]

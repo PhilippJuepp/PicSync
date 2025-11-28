@@ -8,7 +8,6 @@ import (
 )
 
 func init() {
-	// Versuche, .env aus dem Projektroot zu laden (eine Ebene höher)
 	if _, err := os.Stat("../.env"); err == nil {
 		data, _ := os.ReadFile("../.env")
 		lines := strings.Split(string(data), "\n")
@@ -24,7 +23,7 @@ func init() {
 	}
 }
 
-// Config holds all runtime configuration values for the PixSync backend.
+// Config holds all runtime configuration values for the PicSync backend.
 type Config struct {
 	AppHost          string
 	AppPort          string
@@ -52,16 +51,16 @@ func Load() *Config {
 		AppPort:          getEnv("APP_PORT", "8080"),
 		DatabaseHost:     getEnv("DB_HOST", "postgres"),
 		DatabasePort:     getEnv("DB_PORT", "5432"),
-		DatabaseUser:     getEnv("DB_USER", "pixsync"),
-		DatabasePassword: getEnv("DB_PASSWORD", "pixsync"),
-		DatabaseName:     getEnv("DB_NAME", "pixsync"),
+		DatabaseUser:     getEnv("DB_USER", "picsync"),
+		DatabasePassword: getEnv("DB_PASSWORD", "picsync"),
+		DatabaseName:     getEnv("DB_NAME", "picsync"),
 		DatabaseSSLMode:  getEnv("DB_SSLMODE", "disable"),
 		StorageDriver:    getEnv("STORAGE_DRIVER", "local"),
-		LocalStoragePath: getEnv("LOCAL_STORAGE_PATH", "/data/pixsync"),
+		LocalStoragePath: getEnv("LOCAL_STORAGE_PATH", "/data/picsync"),
 		MinioEndpoint:    getEnv("MINIO_ENDPOINT", "minio:9000"),
 		MinioAccessKey:   getEnv("MINIO_ACCESS_KEY", "minioadmin"),
 		MinioSecretKey:   getEnv("MINIO_SECRET_KEY", "minioadmin"),
-		MinioBucket:      getEnv("MINIO_BUCKET", "pixsync"),
+		MinioBucket:      getEnv("MINIO_BUCKET", "picsync"),
 		JWTSecret:        getEnv("JWT_SECRET", "changeme"),
 		Timezone:         getEnv("TZ", "Europe/Berlin"),
 	}
@@ -88,7 +87,7 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-// Utility: returns parsed duration if you ever need it later.
+// Utility: returns parsed duration (for later)
 func getEnvDuration(key string, fallback time.Duration) time.Duration {
 	if v := os.Getenv(key); v != "" {
 		if d, err := time.ParseDuration(v); err == nil {

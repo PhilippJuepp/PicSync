@@ -8,7 +8,7 @@ import (
 	"backend/internal/config"
 )
 
-// Storage is the minimal interface PixSync uses to store and retrieve blobs.
+// Storage is the minimal interface PicSync uses to store and retrieve blobs.
 // Methods are designed for streaming (no large buffering).
 type Storage interface {
 	// Put writes the data from src to objectKey. size is the total byte size if known, -1 if unknown.

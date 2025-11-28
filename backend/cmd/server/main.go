@@ -63,7 +63,7 @@ func main() {
 
 	// === Run server in background ===
 	go func() {
-		fmt.Printf("PixSync server running on %s\n", addr)
+		fmt.Printf("PicSync server running on %s\n", addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("server error: %v", err)
 		}

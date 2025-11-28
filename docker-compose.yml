@@ -3,7 +3,7 @@ version: "3.8"
 services:
   postgres:
     image: postgres:16
-    container_name: pixsync_postgres
+    container_name: picsync_postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER}
@@ -12,11 +12,11 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
     networks:
-      - pixsync-net
+      - picsync-net
 
   minio:
     image: minio/minio:latest
-    container_name: pixsync_minio
+    container_name: picsync_minio
     restart: unless-stopped
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
@@ -28,12 +28,12 @@ services:
       - "9000:9000"
       - "9001:9001"
     networks:
-      - pixsync-net
+      - picsync-net
 
   backend:
     build:
       context: ./backend
-    container_name: pixsync_backend
+    container_name: picsync_backend
     restart: unless-stopped
     env_file: .env
     depends_on:
@@ -42,7 +42,7 @@ services:
     ports:
       - "8080:8080"
     networks:
-      - pixsync-net
+      - picsync-net
     volumes:
       - ./data:/data
 
@@ -51,5 +51,5 @@ volumes:
   minio_data:
 
 networks:
-  pixsync-net:
+  picsync-net:
     driver: bridge

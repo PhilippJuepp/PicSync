@@ -11,6 +11,7 @@ import (
 
 	"backend/internal/db"
 	"backend/internal/storage"
+
 	"github.com/google/uuid"
 )
 
@@ -32,7 +33,7 @@ func UploadInitHandler(pg *db.Postgres) http.HandlerFunc {
 		}
 
 		uploadID := uuid.New().String()
-		tempPath := filepath.Join("/tmp", "pixsync_upload_"+uploadID)
+		tempPath := filepath.Join("/tmp", "picsync_upload_"+uploadID)
 
 		// DB insert
 		err := pg.CreateUpload(uploadID, userID, req.Filename, req.Size, tempPath)
@@ -134,11 +135,11 @@ func UploadCompleteHandler(pg *db.Postgres, store storage.Storage) http.HandlerF
 			return
 		}
 
-	_, err = pg.CreateAsset(userID, up.Filename, "", up.TotalSize, up.Mime, "", &up.TakenAt, storageKey)
-	if err != nil {
-		http.Error(w, "failed to save asset", http.StatusInternalServerError)
-		return
-	}
+		_, err = pg.CreateAsset(userID, up.Filename, "", up.TotalSize, up.Mime, "", &up.TakenAt, storageKey)
+		if err != nil {
+			http.Error(w, "failed to save asset", http.StatusInternalServerError)
+			return
+		}
 
 		// mark upload as finished
 		pg.CompleteUpload(uploadID)
