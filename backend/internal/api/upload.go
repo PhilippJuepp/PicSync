@@ -57,7 +57,7 @@ func UploadHandler(pg *db.Postgres, store storage.Storage) http.HandlerFunc {
         hash := hex.EncodeToString(hashBytes.Sum(nil))
         storageKey := strconv.FormatInt(time.Now().UnixNano(), 10) + "_" + filename
 
-        tmpFile.Seek(0, io.SeekStart) // Reader auf Anfang zurücksetzen
+        tmpFile.Seek(0, io.SeekStart)
 		if err := store.Put(r.Context(), storageKey, tmpFile, sizeWritten); err != nil {
 			http.Error(w, "storage failed", http.StatusInternalServerError)
 			return
