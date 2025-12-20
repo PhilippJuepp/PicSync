@@ -13,6 +13,7 @@ type Upload struct {
     UploadedOffset int64
     Mime           *string
     TakenAt        *time.Time
+    Hash           *string
     CreatedAt      time.Time
     Completed      bool
 }
@@ -25,18 +26,30 @@ func (pg *Postgres) CreateUpload(
     tempPath string,
     mime *string,
     takenAt *time.Time,
+    hash string,
 ) error {
     _, err := pg.DB.Exec(`
-        INSERT INTO uploads (id, user_id, filename, total_size, temp_path, uploaded_offset, completed, mime, taken_at, created_at)
-        VALUES ($1, $2, $3, $4, $5, 0, false, $6, $7, NOW())
-    `, id, userID, filename, totalSize, tempPath, mime, takenAt)
+        INSERT INTO uploads (id, user_id, filename, total_size, temp_path, uploaded_offset, completed, mime, taken_at, hash, created_at)
+        VALUES ($1,$2,$3,$4,$5,0,false,$6,$7,$8,NOW())
+    `, id, userID, filename, totalSize, tempPath, mime, takenAt, hash)
     return err
 }
 
 func (pg *Postgres) GetUpload(id string) (*Upload, error) {
     row := pg.DB.QueryRow(`
-        SELECT id, user_id, filename, temp_path, total_size, uploaded_offset, completed, mime, taken_at
-        FROM uploads WHERE id = $1
+        SELECT
+            id,
+            user_id,
+            filename,
+            temp_path,
+            total_size,
+            uploaded_offset,
+            completed,
+            mime,
+            taken_at,
+            hash
+        FROM uploads
+        WHERE id = $1
     `, id)
 
     var u Upload
@@ -50,12 +63,14 @@ func (pg *Postgres) GetUpload(id string) (*Upload, error) {
         &u.Completed,
         &u.Mime,
         &u.TakenAt,
+        &u.Hash,
     )
     if err != nil {
         return nil, err
     }
     return &u, nil
 }
+
 
 func (pg *Postgres) UpdateUploadOffset(id string, offset int64) error {
     _, err := pg.DB.Exec(`UPDATE uploads SET uploaded_offset = $1 WHERE id = $2`, offset, id)

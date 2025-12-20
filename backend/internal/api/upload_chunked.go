@@ -25,12 +25,28 @@ func UploadInitHandler(pg *db.Postgres) http.HandlerFunc {
             Size     int64     `json:"size"`
             Mime     string    `json:"mime"`
             TakenAt  time.Time `json:"taken_at"`
+            Hash     string    `json:"hash"`
         }
 
         if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
             http.Error(w, "invalid request", http.StatusBadRequest)
             return
         }
+
+        assetID, exists, err := pg.AssetExistsByHash(userID, req.Hash)
+        if err != nil {
+            http.Error(w, "db error", 500)
+            return
+        }
+
+        if exists {
+            json.NewEncoder(w).Encode(map[string]interface{}{
+                "status": "exists",
+                "asset_id": assetID,
+            })
+            return
+        }
+
 
         uploadID := uuid.New().String()
         tempPath := filepath.Join("/tmp", "picsync_upload_"+uploadID)
@@ -47,7 +63,17 @@ func UploadInitHandler(pg *db.Postgres) http.HandlerFunc {
         }
 
         // Upload in DB anlegen
-        if err := pg.CreateUpload(uploadID, userID, req.Filename, req.Size, tempPath, mimePtr, takenAtPtr); err != nil {
+        if err := pg.CreateUpload(
+            uploadID,
+            userID,
+            req.Filename,
+            req.Size,
+            tempPath,
+            mimePtr,
+            takenAtPtr,
+            req.Hash,
+        ); err != nil {
+
             fmt.Println("### CreateUpload ERROR:", err)
             http.Error(w, "db error", http.StatusInternalServerError)
             return
@@ -146,7 +172,22 @@ func UploadCompleteHandler(pg *db.Postgres, store storage.Storage) http.HandlerF
         }
 
         // TakenAt korrekt als Pointer übergeben
-        _, err = pg.CreateAsset(userID, up.Filename, "", up.TotalSize, mime, "", up.TakenAt, storageKey)
+        hash := ""
+        if up.Hash != nil {
+            hash = *up.Hash
+        }
+
+        _, err = pg.CreateAsset(
+            userID,
+            up.Filename,
+            "",
+            up.TotalSize,
+            mime,
+            hash,
+            up.TakenAt,
+            storageKey,
+        )
+
         if err != nil {
             http.Error(w, "failed to save asset", http.StatusInternalServerError)
             return

@@ -63,8 +63,22 @@ func (p *Postgres) Migrate() error {
 		created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 	);
 
+	-- Spalte hash hinzufügen, falls sie fehlt
+	DO $$
+	BEGIN
+	    IF NOT EXISTS (
+	        SELECT 1
+	        FROM information_schema.columns
+	        WHERE table_name='uploads'
+	          AND column_name='hash'
+	    ) THEN
+	        ALTER TABLE uploads ADD COLUMN hash TEXT;
+	    END IF;
+	END$$;
+
 	CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 	CREATE INDEX IF NOT EXISTS idx_sessions_refresh_hash ON sessions(refresh_token_hash);
+	CREATE INDEX IF NOT EXISTS idx_assets_user_hash ON assets(user_id, hash);
 	`
 
 	if _, err := p.DB.Exec(schema); err != nil {

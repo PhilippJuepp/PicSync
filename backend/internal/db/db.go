@@ -65,6 +65,23 @@ func (p *Postgres) CreateAsset(userID int64, filename string, path string, size 
     return id, err
 }
 
+func (p *Postgres) AssetExistsByHash(userID int64, hash string) (int64, bool, error) {
+	var id int64
+	err := p.DB.QueryRow(`
+		SELECT id FROM assets
+		WHERE user_id = $1 AND hash = $2
+		LIMIT 1
+	`, userID, hash).Scan(&id)
+
+	if err == sql.ErrNoRows {
+		return 0, false, nil
+	}
+	if err != nil {
+		return 0, false, err
+	}
+	return id, true, nil
+}
+
 func (p *Postgres) GetAsset(userID, assetID int64) (*Asset, error) {
 	a := &Asset{}
 	query := `SELECT id, filename, path, size, mime, hash, taken_at, storage_key, created_at
