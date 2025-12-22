@@ -7,6 +7,7 @@ import (
     "net/http"
     "os"
     "path/filepath"
+    "strconv"
     "time"
 
     "backend/internal/db"
@@ -51,7 +52,6 @@ func UploadInitHandler(pg *db.Postgres) http.HandlerFunc {
         uploadID := uuid.New().String()
         tempPath := filepath.Join("/tmp", "picsync_upload_"+uploadID)
 
-        // Pointer korrekt setzen
         var mimePtr *string
         if req.Mime != "" {
             mimePtr = &req.Mime
@@ -62,7 +62,6 @@ func UploadInitHandler(pg *db.Postgres) http.HandlerFunc {
             takenAtPtr = &req.TakenAt
         }
 
-        // Upload in DB anlegen
         if err := pg.CreateUpload(
             uploadID,
             userID,
@@ -102,30 +101,44 @@ func UploadChunkHandler(pg *db.Postgres) http.HandlerFunc {
             return
         }
 
-        f, err := os.OpenFile(up.TempPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+        offsetStr := r.URL.Query().Get("offset")
+        offset, err := strconv.ParseInt(offsetStr, 10, 64)
         if err != nil {
-            http.Error(w, "failed to write temp file", http.StatusInternalServerError)
+            http.Error(w, "invalid offset", 400)
+            return
+        }
+
+        f, err := os.OpenFile(
+            up.TempPath,
+            os.O_CREATE|os.O_WRONLY,
+            0644,
+        )
+        if err != nil {
+            http.Error(w, "failed to open temp file", 500)
             return
         }
         defer f.Close()
 
-        n, err := io.Copy(f, r.Body)
-		if err != nil {
-			http.Error(w, "failed to read chunk", http.StatusInternalServerError)
-			return
-		}
+        data, err := io.ReadAll(r.Body)
+        if err != nil {
+            http.Error(w, "failed to read chunk", 500)
+            return
+        }
 
-		newOffset := up.UploadedOffset + n
-		if err := pg.UpdateUploadOffset(uploadID, newOffset); err != nil {
-			http.Error(w, "db update error", http.StatusInternalServerError)
-			return
-		}
+        n, err := f.WriteAt(data, offset)
+        if err == nil {
+            up.UploadedOffset = max(up.UploadedOffset, offset + int64(n))
+            pg.UpdateUploadOffset(up.ID, up.UploadedOffset)
+        }
+        if err != nil {
+            http.Error(w, "failed to write chunk", 500)
+            return
+        }
 
-		resp := map[string]interface{}{
-			"received": n,
-			"offset":   newOffset,
-		}
-		json.NewEncoder(w).Encode(resp)
+        json.NewEncoder(w).Encode(map[string]interface{}{
+            "received": n,
+            "offset":   offset + int64(n),
+        })
     }
 }
 
@@ -171,7 +184,6 @@ func UploadCompleteHandler(pg *db.Postgres, store storage.Storage) http.HandlerF
             mime = *up.Mime
         }
 
-        // TakenAt korrekt als Pointer übergeben
         hash := ""
         if up.Hash != nil {
             hash = *up.Hash
